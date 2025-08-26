@@ -1,0 +1,12 @@
+/* optional local styles; Tailwind is via CDN */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Smooth scrolling and nicer selection */
+html {
+  scroll-behavior: smooth;
+}
+::selection {
+  @apply bg-blue-200 text-blue-900 dark:bg-blue-800 dark:text-white;
+}
