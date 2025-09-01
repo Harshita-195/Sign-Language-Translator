@@ -1,8 +1,11 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 
-export default function WebcamTranslator({ onRecognized, targetLang }) {
+export default function WebcamTranslator({ targetLang = "en" }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
+  const [recognized, setRecognized] = useState("");
+  const [translated, setTranslated] = useState("");
+  const [status, setStatus] = useState("Initializing...");
 
   // Start webcam stream
   useEffect(() => {
@@ -10,11 +13,12 @@ export default function WebcamTranslator({ onRecognized, targetLang }) {
       .then(stream => {
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
-          console.log("✅ Webcam started");
+          setStatus("✅ Webcam started");
         }
       })
       .catch(err => {
         console.error("❌ Error accessing webcam:", err);
+        setStatus("❌ Webcam access denied");
       });
 
     return () => {
@@ -41,36 +45,43 @@ export default function WebcamTranslator({ onRecognized, targetLang }) {
         return;
       }
 
-      console.log("📤 Sending frame to backend...");
+      setStatus("📤 Sending frame...");
 
       try {
         const formData = new FormData();
         formData.append("frame", blob, "frame.jpg");
 
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 4000); // 4 sec timeout
+
         const res = await fetch(`http://localhost:5000/translate?lang=${targetLang}`, {
           method: "POST",
           body: formData,
+          signal: controller.signal
         });
 
-        console.log("✅ Response status:", res.status);
+        clearTimeout(timeoutId);
 
         if (!res.ok) {
           const errText = await res.text();
-          console.error("❌ Backend returned error:", errText);
+          console.error("❌ Backend error:", errText);
+          setStatus("❌ Backend error");
           return;
         }
 
         const data = await res.json();
-        console.log("📥 Backend response:", data);
+        console.log("📥 Response:", data);
 
-        if (onRecognized) {
-          onRecognized({
-            recognized: data.recognized || "",
-            translated: data.translated || ""
-          });
-        }
+        setRecognized(data.recognized || "");
+        setTranslated(data.translated || "");
+        setStatus("✅ Frame processed");
       } catch (err) {
-        console.error("⚠️ Error sending frame:", err);
+        if (err.name === "AbortError") {
+          setStatus("⚠️ Request timed out");
+        } else {
+          console.error("⚠️ Error:", err);
+          setStatus("⚠️ Network error");
+        }
       }
     }, "image/jpeg");
   };
@@ -82,7 +93,7 @@ export default function WebcamTranslator({ onRecognized, targetLang }) {
   }, [targetLang]);
 
   return (
-    <div>
+    <div className="p-4">
       <video
         ref={videoRef}
         autoPlay
@@ -90,6 +101,16 @@ export default function WebcamTranslator({ onRecognized, targetLang }) {
         className="w-full rounded-lg shadow-md"
       />
       <canvas ref={canvasRef} style={{ display: "none" }} />
+
+      <div className="mt-4 p-4 bg-gray-100 rounded-lg shadow">
+        <p className="text-gray-500 text-sm">{status}</p>
+
+        <p className="text-lg font-semibold mt-2">🖐 Recognized:</p>
+        <p className="text-blue-600">{recognized || "..."}</p>
+
+        <p className="text-lg font-semibold mt-2">🌍 Translated:</p>
+        <p className="text-green-600">{translated || "..."}</p>
+      </div>
     </div>
   );
 }

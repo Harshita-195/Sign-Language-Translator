@@ -8,7 +8,6 @@ export default function Home() {
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-[#0f0c29] via-[#302b63] to-[#24243e] text-gray-100">
       {/* Hero Section */}
       <header className="flex-1 flex flex-col items-center justify-center text-center px-6 py-24 relative overflow-hidden">
-        {/* Floating gradient circle */}
         <div className="absolute top-[-100px] right-[-100px] w-[300px] h-[300px] rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 blur-3xl opacity-40 animate-pulse"></div>
         <h1 className="text-5xl md:text-6xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-pink-500 via-indigo-400 to-purple-500 drop-shadow-lg">
           Sign Translator 🤟
